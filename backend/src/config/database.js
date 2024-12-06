@@ -70,7 +70,43 @@ function initializeDatabase() {
                 console.log('Messages table initialized successfully');
             }
         });
-        
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS conversations (
+                conversation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                philosophical_perspective TEXT,
+                topic TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id)
+            )
+        `, (err) => {
+            if (err) {
+                console.error('Error creating conversations table:', err);
+            } else {
+                console.log('Conversations table initialized successfully');
+            }
+        });
+
+        // Update conversations table to include completed_at
+        db.run(`
+            CREATE TABLE IF NOT EXISTS conversations (
+                conversation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                philosophical_perspective TEXT,
+                topic TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                completed_at TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id)
+            )
+        `, (err) => {
+            if (err) {
+                console.error('Error creating conversations table:', err);
+            } else {
+                console.log('Conversations table initialized successfully');
+            }
+        });
+
     });
 }
 

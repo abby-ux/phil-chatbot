@@ -79,6 +79,98 @@ router.post('/messages', async (req, res) => {
     }
 });
 
+// Add new conversations table initialization to your database.js
+router.post('/conversations', (req, res) => {
+    const { userId, philosophical_perspective, topic } = req.body;
+    
+    try {
+        // First, create the conversations table if it doesn't exist
+        db.run(`
+            CREATE TABLE IF NOT EXISTS conversations (
+                conversation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                philosophical_perspective TEXT,
+                topic TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id)
+            )
+        `, (err) => {
+            if (err) {
+                console.error('Error creating conversations table:', err);
+                res.status(500).json({ error: 'Failed to initialize conversations table' });
+                return;
+            }
+
+            // Then insert the new conversation
+            db.run(
+                'INSERT INTO conversations (user_id, philosophical_perspective, topic) VALUES (?, ?, ?)',
+                [userId, philosophical_perspective, topic],
+                function(err) {
+                    if (err) {
+                        console.error('Error creating conversation:', err);
+                        res.status(500).json({ error: 'Failed to create conversation' });
+                        return;
+                    }
+
+                    res.json({
+                        conversationId: this.lastID,
+                        message: 'Conversation created successfully'
+                    });
+                }
+            );
+        });
+    } catch (error) {
+        console.error('Server error:', error);
+        res.status(500).json({ error: 'Failed to process conversation creation' });
+    }
+});
+
+// Add new endpoint to handle chat completion
+router.post('/conversations/:conversationId/complete', (req, res) => {
+    const { conversationId } = req.params;
+    
+    try {
+        // First, verify the conversation exists
+        db.get(
+            'SELECT * FROM conversations WHERE conversation_id = ?',
+            [conversationId],
+            (err, conversation) => {
+                if (err) {
+                    console.error('Error finding conversation:', err);
+                    res.status(500).json({ error: 'Database error while finding conversation' });
+                    return;
+                }
+
+                if (!conversation) {
+                    res.status(404).json({ error: 'Conversation not found' });
+                    return;
+                }
+
+                // Update the conversation to mark it as completed
+                db.run(
+                    'UPDATE conversations SET completed_at = CURRENT_TIMESTAMP WHERE conversation_id = ?',
+                    [conversationId],
+                    function(err) {
+                        if (err) {
+                            console.error('Error completing conversation:', err);
+                            res.status(500).json({ error: 'Failed to complete conversation' });
+                            return;
+                        }
+
+                        res.json({
+                            message: 'Conversation completed successfully',
+                            conversationId: conversationId
+                        });
+                    }
+                );
+            }
+        );
+    } catch (error) {
+        console.error('Server error:', error);
+        res.status(500).json({ error: 'Failed to process conversation completion' });
+    }
+});
+
 
 
 // src/routes/api.js
