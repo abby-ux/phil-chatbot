@@ -3,6 +3,17 @@ const express = require('express');
 const router = express.Router();  // Create a router instance
 const db = require('../config/database');
 
+// Middleware to verify database connection
+const checkDbConnection = (req, res, next) => {
+    if (!db.open) {
+        return res.status(500).json({ error: 'Database connection lost' });
+    }
+    next();
+};
+
+// Apply database check middleware to all routes
+router.use(checkDbConnection);
+
 // Change 'app.post' to 'router.post'
 router.post('/sessions', (req, res) => {
     // Generate a new session ID
@@ -31,7 +42,7 @@ router.post('/sessions', (req, res) => {
     }
 });
 
-// Add the pre-chat form responses endpoint
+// pre-chat form responses endpoint
 router.post('/pre-chat-responses', (req, res) => {
     const { userId, responses } = req.body;
     
@@ -171,6 +182,110 @@ router.post('/conversations/:conversationId/complete', (req, res) => {
     }
 });
 
+
+// In api.js
+
+router.post('/post-chat-responses', async (req, res) => {
+    console.log('Received post-chat request:', {
+        timestamp: new Date().toISOString(),
+        headers: req.headers,
+        body: req.body
+    });
+
+    const { userId, conversationId, responses } = req.body;
+
+    // Validate required fields
+    if (!userId || !conversationId || !responses) {
+        console.error('Missing required fields:', { userId, conversationId, hasResponses: !!responses });
+        return res.status(400).json({
+            error: 'Missing required fields',
+            details: {
+                userId: !userId ? 'missing' : 'present',
+                conversationId: !conversationId ? 'missing' : 'present',
+                responses: !responses ? 'missing' : 'present'
+            }
+        });
+    }
+
+    try {
+        // First verify the user exists
+        const user = await new Promise((resolve, reject) => {
+            db.get('SELECT * FROM users WHERE user_id = ?', [userId], (err, row) => {
+                if (err) reject(err);
+                resolve(row);
+            });
+        });
+
+        if (!user) {
+            console.error('User not found:', userId);
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Then verify the conversation exists
+        const conversation = await new Promise((resolve, reject) => {
+            db.get('SELECT * FROM conversations WHERE conversation_id = ?', [conversationId], (err, row) => {
+                if (err) reject(err);
+                resolve(row);
+            });
+        });
+
+        if (!conversation) {
+            console.error('Conversation not found:', conversationId);
+            return res.status(404).json({ error: 'Conversation not found' });
+        }
+
+        // Begin transaction for saving responses
+        await new Promise((resolve, reject) => {
+            db.run('BEGIN TRANSACTION', (err) => {
+                if (err) reject(err);
+                resolve();
+            });
+        });
+
+        try {
+            // Save each response
+            for (const [questionId, value] of Object.entries(responses)) {
+                await new Promise((resolve, reject) => {
+                    db.run(
+                        `INSERT INTO form_responses (
+                            user_id, conversation_id, form_type, question_id, response_value
+                        ) VALUES (?, ?, ?, ?, ?)`,
+                        [userId, conversationId, 'post', questionId, value.toString()],
+                        (err) => {
+                            if (err) reject(err);
+                            resolve();
+                        }
+                    );
+                });
+            }
+
+            // Commit transaction
+            await new Promise((resolve, reject) => {
+                db.run('COMMIT', (err) => {
+                    if (err) reject(err);
+                    resolve();
+                });
+            });
+
+            console.log('Successfully saved responses for user:', userId);
+            res.json({ success: true });
+
+        } catch (error) {
+            // Rollback on error
+            await new Promise((resolve) => {
+                db.run('ROLLBACK', () => resolve());
+            });
+            throw error;
+        }
+
+    } catch (error) {
+        console.error('Database error:', error);
+        res.status(500).json({ 
+            error: 'Database error',
+            details: error.message 
+        });
+    }
+});
 
 
 // src/routes/api.js

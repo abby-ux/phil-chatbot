@@ -28,7 +28,6 @@ const PreChatForm = () => {
     };
 
     // Handle form submission
-    // In src/components/PreChatForm.js
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {

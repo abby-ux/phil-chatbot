@@ -1,75 +1,135 @@
-// src/components/PhilosophyChat.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../context/SessionContext';
 import axios from 'axios';
+import { philosophicalResponses } from '../responses';
+import StarterQuestions from '../opening-questions/opening-questions';
 
 const PhilosophyChat = () => {
-    // Get navigation and session context
     const navigate = useNavigate();
     const { sessionData } = useSession();
-    
-    // Initialize state variables
     const [messages, setMessages] = useState([]);
     const [currentMessage, setCurrentMessage] = useState('');
     const [topic, setTopic] = useState('autonomous_vehicles');
     const [perspective, setPerspective] = useState('mill');
-
-    // Get conversationId from session data
+    const [hasStarted, setHasStarted] = useState(false);
     const conversationId = sessionData?.conversationId;
 
-    // Ensure we have a valid conversationId
+    const handleBotResponse = useCallback(async (responseText) => {
+        try {
+            await axios.post('http://localhost:3001/api/messages', {
+                conversationId,
+                is_bot: true,
+                message_text: responseText
+            });
+
+            setMessages(prev => [...prev, {
+                text: responseText,
+                isBot: true
+            }]);
+        } catch (error) {
+            console.error('Error sending bot response:', error);
+        }
+    }, [conversationId]);
+
     useEffect(() => {
         if (!conversationId) {
-            console.error('No conversation ID found in session');
             navigate('/pre-chat-form');
+            return;
         }
     }, [conversationId, navigate]);
 
-    // Handle sending a new message
+    const findBestResponse = (userInput) => {
+        const responses = philosophicalResponses[perspective].topics[topic].responses;
+        const input = userInput.toLowerCase();
+        
+        let bestMatch = null;
+        let maxMatches = 0;
+
+        responses.forEach(response => {
+            const matches = response.triggers.filter(trigger => input.includes(trigger)).length;
+            if (matches > maxMatches) {
+                maxMatches = matches;
+                bestMatch = response;
+            }
+        });
+
+        if (!bestMatch) {
+            const randomIndex = Math.floor(Math.random() * responses.length);
+            bestMatch = responses[randomIndex];
+        }
+
+        return bestMatch;
+    };
+
+    const handleStarterQuestionSelect = async (question) => {
+        if (hasStarted) return;
+        
+        try {
+            await axios.post('http://localhost:3001/api/messages', {
+                conversationId,
+                is_bot: false,
+                message_text: question
+            });
+
+            setMessages([{
+                text: question,
+                isBot: false
+            }]);
+
+            setHasStarted(true);
+
+            const response = findBestResponse(question);
+            
+            setTimeout(() => {
+                handleBotResponse(response.message);
+                
+                if (response.followup) {
+                    setTimeout(() => {
+                        handleBotResponse(response.followup);
+                    }, 1000);
+                }
+            }, 500);
+
+        } catch (error) {
+            console.error('Error sending starter question:', error);
+        }
+    };
+
     const handleSendMessage = async () => {
         if (!currentMessage.trim() || !conversationId) return;
 
         try {
-            // Save the user's message
             await axios.post('http://localhost:3001/api/messages', {
-                conversationId: conversationId,
+                conversationId,
                 is_bot: false,
                 message_text: currentMessage
             });
 
-            // Add message to local state
             setMessages(prev => [...prev, {
                 text: currentMessage,
                 isBot: false
             }]);
 
-            // Clear input field
             setCurrentMessage('');
 
-            // Here you would typically also handle the chatbot's response
-            // For now, we'll just add a placeholder response
-            const botResponse = "This is a placeholder response from the chatbot.";
+            const response = findBestResponse(currentMessage);
             
-            // Save the bot's response
-            await axios.post('http://localhost:3001/api/messages', {
-                conversationId: conversationId,
-                is_bot: true,
-                message_text: botResponse
-            });
-
-            // Add bot response to local state
-            setMessages(prev => [...prev, {
-                text: botResponse,
-                isBot: true
-            }]);
+            setTimeout(() => {
+                handleBotResponse(response.message);
+                
+                if (response.followup) {
+                    setTimeout(() => {
+                        handleBotResponse(response.followup);
+                    }, 1000);
+                }
+            }, 500);
 
         } catch (error) {
             console.error('Error sending message:', error);
         }
     };
 
-    // Handle finishing the chat
     const handleFinishChat = async () => {
         try {
             if (!conversationId) {
@@ -91,7 +151,7 @@ const PhilosophyChat = () => {
                     value={topic} 
                     onChange={(e) => setTopic(e.target.value)}
                     className="p-2 border rounded"
-                    disabled
+                    disabled={hasStarted}
                 >
                     <option value="autonomous_vehicles">Autonomous Vehicles</option>
                     <option value="algorithmic_bias">Algorithmic Bias</option>
@@ -101,13 +161,20 @@ const PhilosophyChat = () => {
                     value={perspective} 
                     onChange={(e) => setPerspective(e.target.value)}
                     className="p-2 border rounded"
-                    disabled
+                    disabled={hasStarted}
                 >
                     <option value="mill">Mill/Liberalism</option>
                     <option value="luddism">Luddism</option>
                     <option value="futurism">Futurism</option>
                 </select>
             </div>
+
+            {!hasStarted && (
+                <StarterQuestions 
+                    onQuestionSelect={handleStarterQuestionSelect}
+                    topic={topic}
+                />
+            )}
 
             <div className="bg-gray-100 p-4 rounded-lg min-h-[400px] mb-4">
                 {messages.map((message, index) => (

@@ -19,94 +19,101 @@ const db = new sqlite3.Database(dbPath, (err) => {
 function initializeDatabase() {
     console.log('Initializing database tables...');
     
-    db.serialize(() => {
-        // Create users table
-        db.run(`
-            CREATE TABLE IF NOT EXISTS users (
-                user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT UNIQUE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `, (err) => {
-            if (err) {
-                console.error('Error creating users table:', err);
-            } else {
-                console.log('Users table initialized successfully');
-            }
-        });
+    // Use promises to ensure proper table creation order
+    const createTables = async () => {
+        try {
+            // Create users table first
+            await new Promise((resolve, reject) => {
+                db.run(`
+                    CREATE TABLE IF NOT EXISTS users (
+                        user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        session_id TEXT UNIQUE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                `, (err) => {
+                    if (err) reject(err);
+                    else {
+                        console.log('Users table initialized successfully');
+                        resolve();
+                    }
+                });
+            });
 
-        // Create form_responses table
-        db.run(`
-            CREATE TABLE IF NOT EXISTS form_responses (
-                response_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                form_type TEXT CHECK(form_type IN ('pre', 'post')),
-                question_id TEXT,
-                response_value TEXT,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(user_id)
-            )
-        `, (err) => {
-            if (err) {
-                console.error('Error creating form_responses table:', err);
-            } else {
-                console.log('Form responses table initialized successfully');
-            }
-        });
+            // Create conversations table second
+            await new Promise((resolve, reject) => {
+                db.run(`
+                    CREATE TABLE IF NOT EXISTS conversations (
+                        conversation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER,
+                        philosophical_perspective TEXT,
+                        topic TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        completed_at TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users(user_id)
+                    )
+                `, (err) => {
+                    if (err) reject(err);
+                    else {
+                        console.log('Conversations table initialized successfully');
+                        resolve();
+                    }
+                });
+            });
 
-        db.run(`
-            CREATE TABLE IF NOT EXISTS messages (
-                message_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                conversation_id INTEGER,
-                is_bot BOOLEAN,
-                message_text TEXT,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (conversation_id) REFERENCES conversations(conversation_id)
-            )
-        `, (err) => {
-            if (err) {
-                console.error('Error creating messages table:', err);
-            } else {
-                console.log('Messages table initialized successfully');
-            }
-        });
+            // Create form_responses table third (depends on both users and conversations)
+            await new Promise((resolve, reject) => {
+                db.run(`
+                    CREATE TABLE IF NOT EXISTS form_responses (
+                        response_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER,
+                        conversation_id INTEGER,
+                        form_type TEXT,
+                        question_id TEXT,
+                        response_value TEXT,
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users(user_id),
+                        FOREIGN KEY (conversation_id) REFERENCES conversations(conversation_id)
+                    )
+                `, (err) => {
+                    if (err) reject(err);
+                    else {
+                        console.log('Form responses table initialized successfully');
+                        resolve();
+                    }
+                });
+            });
 
-        db.run(`
-            CREATE TABLE IF NOT EXISTS conversations (
-                conversation_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                philosophical_perspective TEXT,
-                topic TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(user_id)
-            )
-        `, (err) => {
-            if (err) {
-                console.error('Error creating conversations table:', err);
-            } else {
-                console.log('Conversations table initialized successfully');
-            }
-        });
+            // Create messages table last
+            await new Promise((resolve, reject) => {
+                db.run(`
+                    CREATE TABLE IF NOT EXISTS messages (
+                        message_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        conversation_id INTEGER,
+                        is_bot BOOLEAN,
+                        message_text TEXT,
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (conversation_id) REFERENCES conversations(conversation_id)
+                    )
+                `, (err) => {
+                    if (err) reject(err);
+                    else {
+                        console.log('Messages table initialized successfully');
+                        resolve();
+                    }
+                });
+            });
 
-        // Update conversations table to include completed_at
-        db.run(`
-            CREATE TABLE IF NOT EXISTS conversations (
-                conversation_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                philosophical_perspective TEXT,
-                topic TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                completed_at TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(user_id)
-            )
-        `, (err) => {
-            if (err) {
-                console.error('Error creating conversations table:', err);
-            } else {
-                console.log('Conversations table initialized successfully');
-            }
-        });
+            console.log('All database tables initialized successfully');
 
+        } catch (error) {
+            console.error('Error initializing database tables:', error);
+            throw error;
+        }
+    };
+
+    // Run the table creation
+    createTables().catch(err => {
+        console.error('Failed to initialize database:', err);
     });
 }
 
