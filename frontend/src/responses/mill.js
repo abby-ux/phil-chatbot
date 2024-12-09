@@ -72,7 +72,7 @@ export const millResponses = {
           message: "Interesting thought. Mill supported careful experimentation, arguing that transparent and evidence-driven testing ensures the public can trust the safety and efficacy of new technologies.",
           followup: "How should AV developers approach testing to gain public confidence?"
         },
-        // Autonomous Vehicles Additional Responses - Copy and paste into existing responses array
+      
         {
           triggers: ["manufacturer", "maker", "producer", "company", "corporation", "industry", "business"],
           message: "That is an interesting point. Mill would insist that manufacturers bear significant responsibility for ensuring their AVs promote public welfare while respecting individual liberty. Their pursuit of profit must be balanced with social responsibility.",
@@ -123,8 +123,7 @@ export const millResponses = {
           message: "Interesting thought. Mill would insist on protecting vulnerable road users while preserving their freedom of movement, requiring AVs to accommodate diverse transportation choices.",
           followup: "How can AVs best protect all road users while maintaining efficient operation?"
         },
-        // Expand this with more responses using slight variations in phrasing and focus.
-        // Aim for 300+ responses by framing the above ideas differently and focusing on additional subtopics.
+        
       ]
     },
     algorithmic_bias: {
@@ -222,7 +221,7 @@ export const millResponses = {
           message: "Following Mill's progressive views, algorithmic systems should be continuously improved based on evidence of their social impacts.",
           followup: "What mechanisms should exist for reforming biased algorithms?"
         },
-        // Algorithmic Bias Additional Responses - Copy and paste into existing responses array
+        
 {
   triggers: ["database", "dataset", "information", "records", "files", "documentation", "history"],
   message: "Interesting thought. Mill would emphasize that the data feeding algorithmic systems must be scrutinized for historical biases and continuously updated to reflect social progress.",
@@ -323,8 +322,7 @@ export const millResponses = {
           message: "While supporting free enterprise, Mill would insist on corporate accountability and transparency in AV development to protect public safety and individual rights.",
           followup: "How can we balance corporate innovation with public accountability?"
         },
-        // Add variations across justice, fairness, transparency, privacy, accountability, and other subtopics.
-        // Build 300+ responses using slight rephrasings and additional subtopics.
+        
       ]
     }
   }

@@ -16,7 +16,6 @@ const PhilosophyChat = () => {
     const [usedResponses, setUsedResponses] = useState(new Set());
     const [isLoading, setIsLoading] = useState(false);
     const conversationId = sessionData?.conversationId;
-    // const availableResponses = philosophicalResponses[perspective].topics[topic].responses;;
 
     const getValidResponses = useCallback(() => {
         return philosophicalResponses[perspective].topics[topic].responses
@@ -32,7 +31,7 @@ const PhilosophyChat = () => {
                 isLoading: true
             }]);
             
-            // Wait 5 seconds
+            // Wait 3 seconds
             await new Promise(resolve => setTimeout(resolve, 3000));
             
             // Remove loading message

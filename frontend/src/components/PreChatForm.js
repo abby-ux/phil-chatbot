@@ -66,7 +66,7 @@ const PreChatForm = () => {
             <h2 className="text-2xl font-bold mb-6">Pre-Chat Survey</h2>
             
             <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Question 1 - Technology Opinion */}
+                {/* Questions */}
                 <div className="space-y-2">
                     <label className="block text-gray-700 font-semibold">
                         We should blame software engineers who created autonomous vehicles if the vehicles crash or make a "mistake."
