@@ -13,8 +13,12 @@ const PreChatForm = () => {
     
     // Create state to store form responses
     const [formData, setFormData] = useState({
-        technology_opinion: '',
-        openness_rating: ''
+        av_safety: '',  // autonomous vehicle safety
+        engineer_blame: '', // blame for engineers
+        human_vs_algo_bias: '', // human vs algorithmic bias
+        predictive_algorithms: '', // non-discriminatory algorithms
+        open_mindedness: '', // open to new ideas
+        info_accuracy: '' // information accuracy assumption
     });
 
     // Handle changes to form inputs
@@ -65,11 +69,11 @@ const PreChatForm = () => {
                 {/* Question 1 - Technology Opinion */}
                 <div className="space-y-2">
                     <label className="block text-gray-700 font-semibold">
-                        Autonomous vehicles will make roads safer than human drivers
+                        We should blame software engineers who created autonomous vehicles if the vehicles crash or make a "mistake."
                     </label>
                     <select 
-                        value={formData.technology_opinion}
-                        onChange={(e) => handleInputChange('technology_opinion', e.target.value)}
+                        value={formData.engineer_blame}
+                        onChange={(e) => handleInputChange('engineer_blame', e.target.value)}
                         className="w-full p-2 border rounded-lg"
                         required
                     >
@@ -82,14 +86,70 @@ const PreChatForm = () => {
                     </select>
                 </div>
 
-                {/* Question 2 - Openness Rating */}
+                <div className="space-y-2">
+                    <label className="block text-gray-700 font-semibold">
+                        Human bias is worse than algorithmic bias.
+                    </label>
+                    <select 
+                        value={formData.human_vs_algo_bias}
+                        onChange={(e) => handleInputChange('human_vs_algo_bias', e.target.value)}
+                        className="w-full p-2 border rounded-lg"
+                        required
+                    >
+                        <option value="">Select your answer</option>
+                        <option value="1">Strongly Disagree</option>
+                        <option value="2">Disagree</option>
+                        <option value="3">Neutral</option>
+                        <option value="4">Agree</option>
+                        <option value="5">Strongly Agree</option>
+                    </select>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="block text-gray-700 font-semibold">
+                        Predictive algorithms can be used in a non discriminatory way.
+                    </label>
+                    <select 
+                        value={formData.predictive_algorithms}
+                        onChange={(e) => handleInputChange('predictive_algorithms', e.target.value)}
+                        className="w-full p-2 border rounded-lg"
+                        required
+                    >
+                        <option value="">Select your answer</option>
+                        <option value="1">Strongly Disagree</option>
+                        <option value="2">Disagree</option>
+                        <option value="3">Neutral</option>
+                        <option value="4">Agree</option>
+                        <option value="5">Strongly Agree</option>
+                    </select>
+                </div>
+
                 <div className="space-y-2">
                     <label className="block text-gray-700 font-semibold">
                         I consider myself open-minded about new ideas
                     </label>
                     <select 
-                        value={formData.openness_rating}
-                        onChange={(e) => handleInputChange('openness_rating', e.target.value)}
+                        value={formData.open_mindedness}
+                        onChange={(e) => handleInputChange('open_mindedness', e.target.value)}
+                        className="w-full p-2 border rounded-lg"
+                        required
+                    >
+                        <option value="">Select your answer</option>
+                        <option value="1">Strongly Disagree</option>
+                        <option value="2">Disagree</option>
+                        <option value="3">Neutral</option>
+                        <option value="4">Agree</option>
+                        <option value="5">Strongly Agree</option>
+                    </select>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="block text-gray-700 font-semibold">
+                        I do not automatically assume that information I receive is always accurate.
+                    </label>
+                    <select 
+                        value={formData.info_accuracy}
+                        onChange={(e) => handleInputChange('info_accuracy', e.target.value)}
                         className="w-full p-2 border rounded-lg"
                         required
                     >

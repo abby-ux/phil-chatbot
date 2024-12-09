@@ -60,7 +60,6 @@ function PostChatForm() {
     };
 
     // Handle form submission
-    // In PostChatForm.js
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -90,7 +89,7 @@ function PostChatForm() {
                     responses: formData
                 },
                 {
-                    timeout: 5000, // 5 second timeout
+                    timeout: 3000, // 5 second timeout
                     headers: {
                         'Content-Type': 'application/json'
                     }
@@ -187,12 +186,12 @@ function PostChatForm() {
 
                     <RatingScale
                         questionId="compelling_arguments"
-                        label="The chatbot presented compelling arguments"
+                        label="The chatbot's responses made me think about my own opinions more"
                     />
 
                     <RatingScale
                         questionId="deep_thinking"
-                        label="The conversation made me think deeply about my beliefs"
+                        label="The conversation made me wonder what else this chatbot could be used for"
                     />
 
                     <RatingScale
@@ -202,7 +201,7 @@ function PostChatForm() {
 
                     <RatingScale
                         questionId="philosophical_perspective"
-                        label="The philosophical perspective presented was convincing"
+                        label="The chatbot was fun/interesting to talk to"
                     />
                 </section>
 
@@ -217,12 +216,12 @@ function PostChatForm() {
 
                     <RatingScale
                         questionId="different_sides"
-                        label="The conversation helped me see different sides of the issues"
+                        label="The conversation kind of seemed like talking to a repetitive teacher or debater"
                     />
 
                     <RatingScale
                         questionId="well_reasoned"
-                        label="I felt the chatbot's responses were well-reasoned"
+                        label="This chatbot should be used for other tasks such as teaching people new subjects, or debating"
                     />
                 </section>
 
@@ -232,7 +231,7 @@ function PostChatForm() {
 
                     <div className="mb-6">
                         <label className="block text-gray-700 text-sm font-bold mb-2">
-                            What was the most compelling argument the chatbot made?
+                            Other thoughts?
                         </label>
                         <textarea
                             className="w-full p-2 border rounded-lg"
@@ -241,16 +240,6 @@ function PostChatForm() {
                         />
                     </div>
 
-                    <div className="mb-6">
-                        <label className="block text-gray-700 text-sm font-bold mb-2">
-                            How has this conversation influenced your thinking about technology's role in society?
-                        </label>
-                        <textarea
-                            className="w-full p-2 border rounded-lg"
-                            rows="3"
-                            onChange={(e) => handleInputChange('influence_text', e.target.value)}
-                        />
-                    </div>
                 </section>
 
                 {/* Submit Button */}
