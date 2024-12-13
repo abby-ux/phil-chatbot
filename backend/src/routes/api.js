@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();  // Create a router instance
 const db = require('../config/database');
+const crypto = require('crypto');
 
 // Middleware to verify database connection
 const checkDbConnection = (req, res, next) => {
@@ -14,25 +15,45 @@ const checkDbConnection = (req, res, next) => {
 // Apply database check middleware to all routes
 router.use(checkDbConnection);
 
-// Change 'app.post' to 'router.post'
-router.post('/sessions', (req, res) => {
-    // Generate a new session ID
-    const sessionId = Math.random().toString(36).substring(7);
-    const userId = Math.floor(Math.random() * 1000000);
+// Endpoint creates a new user session 
+// by creating a random session id, creating user record in DB, and returning session details to client
+router.post('/sessions', async (req, res) => {
+    // Generate a new session ID, make sure it is secure by using crypto
+    const sessionId = crypto.randomBytes(32).toString('hex');
+    // add a timestamp
+    const now = new Date().toISOString(); 
+
+    // check if the ID already exists
+    const existingSession = await new Promise((resolve, reject) => {
+        db.get(`SELECT session_id FROM users WHERE session_id = ?`, [sessionId], (err, row) => {
+            if (err) reject (err);
+            resolve(row);
+        });
+    });
+    // if there is already that session ID user should try again
+    // future: resolve this in a different way
+    if (existingSession) {
+        return res.status(409).json({ 
+            error: 'Session ID collision. Please try again.' 
+        });
+    }
     
     try {
         // Insert the new user into the database
-        db.run('INSERT INTO users (session_id) VALUES (?)', [sessionId], function(err) {
-            if (err) {
-                console.error('Database error:', err);
-                res.status(500).json({ error: err.message });
-                return;
-            }
+        db.run('INSERT INTO users (session_id, created_at) VALUES (?, ?)', [sessionId, now], 
+            function(err) {
+                if (err) {
+                    console.error('Database error:', err);
+                    res.status(500).json({ error: err.message });
+                    return;
+                }
             
             // Send back the session information
-            res.json({
+            // 201 (Created): indicates a new resource was created -- better than defult 200 (OK)
+            res.status(201).json({
                 userId: this.lastID,
                 sessionId: sessionId,
+                createdAt: now,
                 message: 'Session created successfully'
             });
         });
@@ -43,19 +64,103 @@ router.post('/sessions', (req, res) => {
 });
 
 // pre-chat form responses endpoint
-router.post('/pre-chat-responses', (req, res) => {
-    const { userId, responses } = req.body;
+router.post('/pre-chat-responses', async (req, res) => {
+    const { userId, responses } = req.body; // extracts userId and responses from the request body
+
+    // validate input
+    if (!userId || !responses || Objecy.keys(responses).length === 0) {
+        return res.status(400).json({
+            error: 'Invalid repsonse',
+            details: 'UserID and responses are required.'
+        });
+    }
     
     try {
-        // Insert each response into the database
-        const stmt = db.prepare('INSERT INTO form_responses (user_id, form_type, question_id, response_value) VALUES (?, ?, ?, ?)');
-        
-        Object.entries(responses).forEach(([questionId, value]) => {
-            stmt.run(userId, 'pre', questionId, value);
+        // verify that the user exists
+        const user = await new Promise((resolve, reject) => {
+            db.get(`SELECT user_id FROM users WHERE user_id = ?`, [userId], (err, row) => {
+                if (err) reject (err);
+                resolve(row);
+            });
         });
-        
-        stmt.finalize();
-        res.json({ success: true });
+
+        if (!user) {
+            return res.status(400).json({
+                error: 'User does not exists',
+                details: 'Can not save response for non-existent user'
+            })
+        }
+
+        // wrap multiple inserts inside of a transaction
+        //start transaction, if any operation within the transaction fails, all operations will be undone (rolled back)
+        await new Promise((resolve, reject) => {
+            db.run('BEGIN TRANSACTION', err => {
+                if (err) reject(err);
+                resolve();
+            });
+        });
+
+        // Insert each response into the database
+        try {
+            const stmt = db.prepare(`
+                INSERT INTO form_responses (
+                    user_id, 
+                    form_type, 
+                    question_id, 
+                    response_value,
+                    created_at
+                ) VALUES (?, ?, ?, ?, ?)
+            `);
+            const now = new Date().toISOString();
+
+            // validate and insert each response
+            for (const [questionId, value] of Object.entries(responses)) {
+                // validate response value
+                if (value === null || value === undefined || value === '') {
+                    throw new Error(`Invalid value for question ${questionId}`);
+                }
+
+                await new Promise((resolve, reject) => {
+                    stmt.run(
+                        userId,
+                        'pre',
+                        questionId,
+                        value.toString(),
+                        now,
+                        (err) => {
+                            if (err) reject(err);
+                            resolve();
+                        }
+                    );
+                });
+                
+            }
+            stmt.finalize(); // close up prepared statement to free up resources
+
+            // Commit transaction
+            await new Promise((resolve, reject) => {
+                db.run('COMMIT', err => {
+                    if (err) reject(err);
+                    resolve();
+                });
+            });
+
+            // Send detailed success response
+            res.status(201).json({
+                success: true,
+                message: 'Pre-chat responses saved successfully',
+                timestamp: now,
+                responseCount: Object.keys(responses).length
+            });
+
+        } catch (error) {
+            // Rollback transaction on error
+            await new Promise(resolve => {
+                db.run('ROLLBACK', () => resolve());
+            });
+            throw error;
+
+        }  
     } catch (error) {
         console.error('Database error:', error);
         res.status(500).json({ error: 'Failed to save responses' });
@@ -289,7 +394,6 @@ router.post('/post-chat-responses', async (req, res) => {
 
 
 // src/routes/api.js
-// Add these new test endpoints to your existing router
 
 // Test endpoint to create a sample user
 // http://localhost:3001/api/test/create-user 
