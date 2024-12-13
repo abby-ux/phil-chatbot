@@ -143,6 +143,4 @@ Potential enhancements:
 
 This is a research project with a specific focus on studying how AI interactions influence opinions about technology ethics. While it's not currently open for contributions, the code can be used as a reference for similar research projects.
 
-## License
 
-This project is part of an academic research study. All rights reserved.
